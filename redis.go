@@ -32,11 +32,12 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 		if err_parse == nil {
 			return
 		}
-		iscached = false
+
 		logrus.Warn(fmt.Sprintf("%s: %s | key: %s, cached_datas: %s", ErrUnmarshal.Error(), err_parse.Error(), key, cached_datas))
 	}
 
 	/* fallback if not data or fail get from cache */
+	iscached = false
 	var fallbackDatas interface{}
 	fallbackDatas, err = fallbackFn()
 	if err != nil {
@@ -44,7 +45,6 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 	}
 	outVal := reflect.ValueOf(out)
 	if outVal.Kind() != reflect.Ptr {
-		iscached = false
 		err = fmt.Errorf("%w: %s", ErrOutPointer, "got: "+reflect.TypeOf(out).String())
 		return
 	}
