@@ -32,7 +32,7 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 		if err_parse == nil {
 			return
 		}
-		logrus.Warn(fmt.Sprintf("%s: %s | key: %s, cached_datas: %s"), ErrUnmarshal.Error(), err_parse.Error(), key, cached_datas)
+		logrus.Warn(fmt.Sprintf("%s: %s | key: %s, cached_datas: %s", ErrUnmarshal.Error(), err_parse.Error(), key, cached_datas))
 	}
 
 	/* fallback if not data or fail get from cache */
@@ -64,7 +64,7 @@ func (rc *resp_cache_redis) get(key string) (iscached bool, resp string) {
 		iscached = false
 		resp = ""
 		if !errors.Is(err, redis.ErrNil) {
-			logrus.Warn(fmt.Sprintf("%s (redis): %s | key: %s"), ErrCacheEngine.Error(), err.Error(), key)
+			logrus.Warn(fmt.Sprintf("%s (redis): %s | key: %s", ErrCacheEngine.Error(), err.Error(), key))
 		}
 	}
 	return
@@ -75,7 +75,7 @@ func (rc *resp_cache_redis) set(key string, ttl int, datas interface{}) {
 	defer rdsConn.Close()
 	jsonResp, err := json.Marshal(datas)
 	if err != nil {
-		logrus.Warn(fmt.Sprintf("%s: %s | datas: %v"), ErrMarshal.Error(), err.Error(), datas)
+		logrus.Warn(fmt.Sprintf("%s: %s | datas: %v", ErrMarshal.Error(), err.Error(), datas))
 		return
 	}
 
@@ -86,6 +86,6 @@ func (rc *resp_cache_redis) set(key string, ttl int, datas interface{}) {
 	}
 	_, err = rdsConn.Do("SET", args...)
 	if err != nil {
-		logrus.Warn("Failed to set cached (key: %s): %v", key, err)
+		logrus.Warn(fmt.Sprintf("Failed to set cached (key: %s): %v", key, err))
 	}
 }
