@@ -32,6 +32,7 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 		if err_parse == nil {
 			return
 		}
+		iscached = false
 		logrus.Warn(fmt.Sprintf("%s: %s | key: %s, cached_datas: %s", ErrUnmarshal.Error(), err_parse.Error(), key, cached_datas))
 	}
 
