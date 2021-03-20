@@ -44,6 +44,7 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 	}
 	outVal := reflect.ValueOf(out)
 	if outVal.Kind() != reflect.Ptr {
+		iscached = false
 		err = fmt.Errorf("%w: %s", ErrOutPointer, "got: "+reflect.TypeOf(out).String())
 		return
 	}
