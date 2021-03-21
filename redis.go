@@ -42,6 +42,8 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 	fallbackDatas, err = fallbackFn()
 	if err != nil {
 		return
+	} else if fallbackDatas == nil {
+		return
 	}
 	outVal := reflect.ValueOf(out)
 	if outVal.Kind() != reflect.Ptr {

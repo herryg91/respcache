@@ -2,6 +2,7 @@ package respcache
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/gomodule/redigo/redis"
@@ -11,6 +12,11 @@ import (
 type TestStruct struct {
 	Id   int
 	Name string
+}
+
+type TestStructCustJson struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
 }
 
 func Test_resp_cache_redis_Run(t *testing.T) {
@@ -27,6 +33,24 @@ func Test_resp_cache_redis_Run(t *testing.T) {
 	var out_happy_scenario_cached TestStruct
 	mockRedisConn.Command("GET", "happy-scenario-cached").Expect(`{"Id":1,"Name":"test 1"}`).ExpectError(nil)
 
+	var out_happy_scenario_cached_string string
+	mockRedisConn.Command("GET", "happy-scenario-cached-string").Expect(`"test string"`).ExpectError(nil)
+
+	var out_happy_scenario_cached_int int
+	mockRedisConn.Command("GET", "happy-scenario-cached-int").Expect(`1`).ExpectError(nil)
+
+	var out_happy_scenario_cached_float float64
+	mockRedisConn.Command("GET", "happy-scenario-cached-float").Expect(`1.23`).ExpectError(nil)
+
+	var out_happy_scenario_cached_cust_json TestStructCustJson
+	mockRedisConn.Command("GET", "happy-scenario-cached-cust-json").Expect(`{"id":1,"name":"test 1"}`).ExpectError(nil)
+
+	var out_happy_scenario_cached_arr_struct []TestStruct
+	mockRedisConn.Command("GET", "happy-scenario-cached-arr-struct").Expect(`[{"Id":1,"Name":"test 1"},{"Id":2,"Name":"test 2"}]`).ExpectError(nil)
+
+	var out_happy_scenario_cached_arr_ptr_struct []*TestStruct
+	mockRedisConn.Command("GET", "happy-scenario-cached-arr-ptr-struct").Expect(`[{"Id":1,"Name":"test 1"},{"Id":2,"Name":"test 2"}]`).ExpectError(nil)
+
 	var out_fail_fallback_error TestStruct
 	mockRedisConn.Command("GET", "fail-fallback-error").ExpectError(redis.ErrNil)
 
@@ -36,6 +60,9 @@ func Test_resp_cache_redis_Run(t *testing.T) {
 
 	var out_fail_not_pointer TestStruct
 	mockRedisConn.Command("GET", "fail-not-pointer").ExpectError(redis.ErrNil)
+
+	var out_fallback_nil TestStruct
+	mockRedisConn.Command("GET", "fallback-nil").ExpectError(nil)
 
 	type fields struct {
 		rdsPool *redis.Pool
@@ -81,6 +108,90 @@ func Test_resp_cache_redis_Run(t *testing.T) {
 			wantErr:      false,
 		},
 		{
+			name:   "happy scenario cached string",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"happy-scenario-cached-string",
+				10,
+				&out_happy_scenario_cached_string,
+				func() (interface{}, error) {
+					return "test string", nil
+				}},
+			wantIscached: true,
+			wantErr:      false,
+		},
+		{
+			name:   "happy scenario cached int",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"happy-scenario-cached-int",
+				10,
+				&out_happy_scenario_cached_int,
+				func() (interface{}, error) {
+					return 1, nil
+				}},
+			wantIscached: true,
+			wantErr:      false,
+		},
+		{
+			name:   "happy scenario cached float",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"happy-scenario-cached-float",
+				10,
+				&out_happy_scenario_cached_float,
+				func() (interface{}, error) {
+					return 1.23, nil
+				}},
+			wantIscached: true,
+			wantErr:      false,
+		},
+		{
+			name:   "happy scenario cached cust json",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"happy-scenario-cached-cust-json",
+				10,
+				&out_happy_scenario_cached_cust_json,
+				func() (interface{}, error) {
+					return TestStructCustJson{Id: 1, Name: "test 1"}, nil
+				}},
+			wantIscached: true,
+			wantErr:      false,
+		},
+		{
+			name:   "happy scenario cached arr struct",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"happy-scenario-cached-arr-struct",
+				10,
+				&out_happy_scenario_cached_arr_struct,
+				func() (interface{}, error) {
+					return []TestStruct{
+						TestStruct{Id: 1, Name: "test 1"},
+						TestStruct{Id: 2, Name: "test 2"},
+					}, nil
+				}},
+			wantIscached: true,
+			wantErr:      false,
+		},
+		{
+			name:   "happy scenario cached arr ptr struct",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"happy-scenario-cached-arr-ptr-struct",
+				10,
+				&out_happy_scenario_cached_arr_ptr_struct,
+				func() (interface{}, error) {
+					return []*TestStruct{
+						&TestStruct{Id: 1, Name: "test 1"},
+						&TestStruct{Id: 2, Name: "test 2"},
+					}, nil
+				}},
+			wantIscached: true,
+			wantErr:      false,
+		},
+		{
 			name:   "fail fallback error",
 			fields: fields{rdsPool: mockRedisPool},
 			args: args{
@@ -118,6 +229,19 @@ func Test_resp_cache_redis_Run(t *testing.T) {
 				}},
 			wantIscached: false,
 			wantErr:      true,
+		},
+		{
+			name:   "fallback nil",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"fallback-nil",
+				10,
+				&out_fallback_nil,
+				func() (interface{}, error) {
+					return nil, nil
+				}},
+			wantIscached: false,
+			wantErr:      false,
 		},
 	}
 	for _, tt := range tests {
@@ -222,6 +346,26 @@ func Test_resp_cache_redis_get(t *testing.T) {
 			}
 			if gotResp != tt.wantResp {
 				t.Errorf("resp_cache_redis.get() gotResp = %v, want %v", gotResp, tt.wantResp)
+			}
+		})
+	}
+}
+
+func TestNewRedisCache(t *testing.T) {
+	type args struct {
+		rdsPool *redis.Pool
+	}
+	tests := []struct {
+		name string
+		args args
+		want RespCache
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := NewRedisCache(tt.args.rdsPool); !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewRedisCache() = %v, want %v", got, tt.want)
 			}
 		})
 	}
