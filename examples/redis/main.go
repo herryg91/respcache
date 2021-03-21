@@ -19,8 +19,8 @@ func main() {
 	iscached, err := rc.Run("test_redis_simple_cache", 10, &result, func() (interface{}, error) {
 		return GetAuthors(), nil
 	})
-
-	log.Println(fmt.Sprintf("[cached:%v] %v", iscached, result))
+	log.Println(fmt.Sprintf("[cached: %v]", iscached))
+	PrintAuthors(result)
 }
 
 type Author struct {
@@ -33,5 +33,11 @@ func GetAuthors() []Author {
 		Author{Id: 1, Name: "Name 1"},
 		Author{Id: 2, Name: "Name 2"},
 		Author{Id: 3, Name: "Name 3"},
+	}
+}
+
+func PrintAuthors(authors []Author) {
+	for _, author := range authors {
+		log.Println("id: ", author.Id, "| name: ", author.Name)
 	}
 }
