@@ -49,6 +49,9 @@ func (rc *resp_cache_redis) Run(key string, ttl int, out interface{}, fallbackFn
 	if outVal.Kind() != reflect.Ptr {
 		err = fmt.Errorf("%w: %s", ErrOutPointer, "got: "+reflect.TypeOf(out).String())
 		return
+	} else if outVal.Elem().Type() != reflect.TypeOf(fallbackDatas) {
+		err = fmt.Errorf("%w. out: %s, fallback: %s", ErrMismatchDataType, outVal.Elem().Type().String(), reflect.TypeOf(fallbackDatas).String())
+		return
 	}
 	outVal.Elem().Set(reflect.ValueOf(fallbackDatas))
 

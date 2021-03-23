@@ -64,6 +64,9 @@ func Test_resp_cache_redis_Run(t *testing.T) {
 	var out_fallback_nil TestStruct
 	mockRedisConn.Command("GET", "fallback-nil").ExpectError(nil)
 
+	var out_fallback_wrong_type TestStruct
+	mockRedisConn.Command("GET", "fail-fallback-wrong-type").ExpectError(redis.ErrNil)
+
 	type fields struct {
 		rdsPool *redis.Pool
 	}
@@ -242,6 +245,19 @@ func Test_resp_cache_redis_Run(t *testing.T) {
 				}},
 			wantIscached: false,
 			wantErr:      false,
+		},
+		{
+			name:   "fallback wrong type",
+			fields: fields{rdsPool: mockRedisPool},
+			args: args{
+				"fail-fallback-wrong-type",
+				10,
+				&out_fallback_wrong_type,
+				func() (interface{}, error) {
+					return "wrong type", nil
+				}},
+			wantIscached: false,
+			wantErr:      true,
 		},
 	}
 	for _, tt := range tests {
